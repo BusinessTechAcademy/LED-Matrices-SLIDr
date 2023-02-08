@@ -1,0 +1,52 @@
+import board
+# import displayio
+import framebufferio
+# import rgbmatrix
+import time
+# import random
+# import terminalio
+from adafruit_matrixportal.matrixportal import MatrixPortal
+from adafruit_matrixportal.network import Network
+
+matrixportal = MatrixPortal(bit_depth=3, width=64, height=32, status_neopixel=board.NEOPIXEL)
+
+NETWORK = Network()
+NETWORK.connect()
+DISPLAY = framebufferio.FramebufferDisplay(matrixportal, auto_refresh=False, rotation=0)
+IMG_DIR = ""
+IMG_FEED = "image.current"
+images = []
+USE_IO = True
+
+
+def update_data():
+    if USE_IO:
+        try:
+            image_data = matrixportal.get_io_data(IMG_FEED)
+
+            for json_data in image_data:
+                images.append(matrixportal.network.json_traverse(json_data, ["value"]))
+            print(images)
+        except Exception as error:
+            time.sleep(15)
+            print(error)
+    if USE_IO is not True:
+        try:
+            image_data = NETWORK.fetch_data(IMG_DIR)
+
+            for json_data in image_data:
+                images.append(matrixportal.network.json_traverse(json_data, ["value"]))
+            print(images)
+        except Exception as error:
+            time.sleep(15)
+            print(error)
+
+update_data()
+last_update = time.monotonic()
+image_index = None
+
+while True:
+
+    if time.monotonic() > last_update + 600:
+        update_data()
+        last_update = time.monotonic()
